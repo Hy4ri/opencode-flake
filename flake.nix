@@ -43,5 +43,21 @@
         self.overlays.opencode final prev
         // self.overlays.opencode-desktop final prev;
     };
+
+    devShells = forAllSystems (system: let
+      pkgs = nixpkgsFor.${system};
+    in {
+      default = pkgs.mkShell {
+        packages = with pkgs; [
+          curl
+          jq
+          nix
+        ];
+        shellHook = ''
+          echo "opencode-flake dev shell"
+          echo "  Run ./update-version.sh to update to the latest release"
+        '';
+      };
+    });
   };
 }

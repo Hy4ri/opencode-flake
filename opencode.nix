@@ -26,7 +26,7 @@ let
   hash = hashMap.${system} or (throw "Unsupported system: ${system}");
 in
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "opencode";
   inherit version;
 

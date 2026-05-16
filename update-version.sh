@@ -5,17 +5,24 @@ set -euo pipefail
 REPO="anomalyco/opencode"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Cleanup temp files on exit
+cleanup() {
+  rm -f "${TEMP_FILES[@]}" 2>/dev/null || true
+}
+TEMP_FILES=()
+trap cleanup EXIT
+
 get_hash() {
   local url="$1"
   local temp_file
   temp_file=$(mktemp)
+  TEMP_FILES+=("$temp_file")
 
   if curl -sL "$url" -o "$temp_file"; then
     local raw_hash
     raw_hash=$(sha256sum "$temp_file" | cut -d' ' -f1)
     nix hash convert --hash-algo sha256 --to sri "$raw_hash"
   fi
-  rm -f "$temp_file"
 }
 
 # 1. Get version
@@ -26,7 +33,7 @@ else
   echo "Fetching latest version from GitHub..."
   version=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | \
     grep -oP '"tag_name":\s*"v\K[^"]+')
-  
+
   if [[ -z "$version" ]]; then
     echo "Error: Failed to fetch latest version from GitHub."
     exit 1
@@ -90,7 +97,7 @@ cat > "$SCRIPT_DIR/version.json" << EOF
 }
 EOF
 
-# 5. Update opencode.nix
+# 5. Update opencode.nix — match any sha256 SRI hash, not just placeholder
 echo "Updating opencode.nix..."
 opencode_file="$SCRIPT_DIR/opencode.nix"
 if [[ ! -f "$opencode_file" ]]; then
@@ -98,12 +105,10 @@ if [[ ! -f "$opencode_file" ]]; then
   exit 1
 fi
 
-temp_file=$(mktemp)
-sed "s|\"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"; # cli-x64|\"$hash_cli_x64\"; # cli-x64|" "$opencode_file" > "$temp_file"
-sed -i "s|\"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"; # cli-arm64|\"$hash_cli_arm64\"; # cli-arm64|" "$temp_file"
-mv "$temp_file" "$opencode_file"
+sed -i "s|\"sha256-[A-Za-z0-9+/]\{43\}=\"; # cli-x64|\"$hash_cli_x64\"; # cli-x64|" "$opencode_file"
+sed -i "s|\"sha256-[A-Za-z0-9+/]\{43\}=\"; # cli-arm64|\"$hash_cli_arm64\"; # cli-arm64|" "$opencode_file"
 
-# 6. Update opencode-desktop.nix
+# 6. Update opencode-desktop.nix — same approach
 echo "Updating opencode-desktop.nix..."
 desktop_file="$SCRIPT_DIR/opencode-desktop.nix"
 if [[ ! -f "$desktop_file" ]]; then
@@ -111,16 +116,14 @@ if [[ ! -f "$desktop_file" ]]; then
   exit 1
 fi
 
-temp_file=$(mktemp)
-sed "s|\"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"; # desktop-amd64|\"$hash_desktop_amd64\"; # desktop-amd64|" "$desktop_file" > "$temp_file"
-sed -i "s|\"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"; # desktop-arm64|\"$hash_desktop_arm64\"; # desktop-arm64|" "$temp_file"
-mv "$temp_file" "$desktop_file"
+sed -i "s|\"sha256-[A-Za-z0-9+/]\{43\}=\"; # desktop-amd64|\"$hash_desktop_amd64\"; # desktop-amd64|" "$desktop_file"
+sed -i "s|\"sha256-[A-Za-z0-9+/]\{43\}=\"; # desktop-arm64|\"$hash_desktop_arm64\"; # desktop-arm64|" "$desktop_file"
 
 echo "------------------------------------------------"
 echo "Success! Updated to version $version"
 echo "------------------------------------------------"
-echo "  opencode CLI x64:     $hash_cli_x64"
-echo "  opencode CLI arm64:   $hash_cli_arm64"
+echo "  opencode CLI x64:       $hash_cli_x64"
+echo "  opencode CLI arm64:     $hash_cli_arm64"
 echo "  opencode-desktop amd64: $hash_desktop_amd64"
 echo "  opencode-desktop arm64: $hash_desktop_arm64"
 echo "------------------------------------------------"

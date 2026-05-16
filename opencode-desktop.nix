@@ -64,28 +64,8 @@ let
   system = stdenv.hostPlatform.system;
   arch = archMap.${system} or (throw "Unsupported system: ${system}");
   hash = hashMap.${system} or (throw "Unsupported system: ${system}");
-in
 
-stdenv.mkDerivation rec {
-  pname = "opencode-desktop";
-  inherit version;
-
-  src = fetchurl {
-    url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-desktop-linux-${arch}.deb";
-    inherit hash;
-  };
-
-  nativeBuildInputs = [
-    dpkg
-    autoPatchelfHook
-    makeWrapper
-  ];
-
-  # The musl prebuilts ship libc.musl-*.so.1 SONAMEs that autoPatchelfHook can't
-  # resolve on glibc systems. They aren't loaded at runtime on the host libc anyway.
-  autoPatchelfIgnoreMissingDeps = [ "libc.musl-*.so.*" ];
-
-  buildInputs = [
+  runtimeLibs = [
     alsa-lib
     at-spi2-atk
     at-spi2-core
@@ -128,6 +108,28 @@ stdenv.mkDerivation rec {
     libkrb5
     stdenv.cc.cc
   ];
+in
+
+stdenv.mkDerivation {
+  pname = "opencode-desktop";
+  inherit version;
+
+  src = fetchurl {
+    url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-desktop-linux-${arch}.deb";
+    inherit hash;
+  };
+
+  nativeBuildInputs = [
+    dpkg
+    autoPatchelfHook
+    makeWrapper
+  ];
+
+  # The musl prebuilts ship libc.musl-*.so.1 SONAMEs that autoPatchelfHook can't
+  # resolve on glibc systems. They aren't loaded at runtime on the host libc anyway.
+  autoPatchelfIgnoreMissingDeps = [ "libc.musl-*.so.*" ];
+
+  buildInputs = runtimeLibs;
 
   unpackPhase = ''
     runHook preUnpack
@@ -142,21 +144,24 @@ stdenv.mkDerivation rec {
     mkdir -p $out/opt/opencode-desktop
     cp -r opt/OpenCode/* $out/opt/opencode-desktop/
 
-    # Copy shared assets
-    mkdir -p $out/share
-    cp -r usr/share/* $out/share/ 2>/dev/null || true
+    # Copy shared assets if present
+    if [ -d usr/share ]; then
+      mkdir -p $out/share
+      cp -r usr/share/* $out/share/
+    fi
 
     # Fix desktop file paths
-    for desktop in $out/share/applications/*.desktop; do
-      [ -f "$desktop" ] && substituteInPlace "$desktop" \
-        --replace-fail /opt/OpenCode/@opencode-aidesktop $out/bin/opencode-desktop \
-        2>/dev/null || true
-    done
+    if [ -d "$out/share/applications" ]; then
+      for desktop in $out/share/applications/*.desktop; do
+        [ -f "$desktop" ] && substituteInPlace "$desktop" \
+          --replace-fail /opt/OpenCode/@opencode-aidesktop $out/bin/opencode-desktop
+      done
+    fi
 
     # Wrap the binary
     mkdir -p $out/bin
     makeWrapper $out/opt/opencode-desktop/@opencode-aidesktop $out/bin/opencode-desktop \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath buildInputs} \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs} \
       --set PATH ${lib.makeBinPath [ xdg-utils ]}
 
     runHook postInstall
