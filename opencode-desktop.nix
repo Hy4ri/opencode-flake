@@ -81,6 +81,10 @@ stdenv.mkDerivation rec {
     makeWrapper
   ];
 
+  # The musl prebuilts ship libc.musl-*.so.1 SONAMEs that autoPatchelfHook can't
+  # resolve on glibc systems. They aren't loaded at runtime on the host libc anyway.
+  autoPatchelfIgnoreMissingDeps = [ "libc.musl-*.so.*" ];
+
   buildInputs = [
     alsa-lib
     at-spi2-atk
