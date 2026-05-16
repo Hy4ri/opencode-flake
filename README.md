@@ -1,6 +1,6 @@
 # OpenCode Nix Flake
 
-[![OpenCode Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FHy4ri%2Fopencode-flake%2Fmain%2Fversion.json&query=%24.version&label=opencode&color=blue&logo=opencode)](https://opencode.ai)
+[![OpenCode Version](https://img.shields.io/github/v/release/anomalyco/opencode?label=opencode&color=blue&logo=github)](https://github.com/anomalyco/opencode/releases/latest)
 [![Update Status](https://img.shields.io/github/actions/workflow/status/Hy4ri/opencode-flake/update.yml?label=auto-update)](https://github.com/Hy4ri/opencode-flake/actions/workflows/update.yml)
 
 Nix flake for [OpenCode](https://opencode.ai) — an AI-powered terminal code editor and desktop IDE.  
@@ -132,7 +132,7 @@ opencode-desktop --version
 nix run github:Hy4ri/opencode-flake -- --version
 ```
 
-Expected output: `opencode <version>` (e.g., `opencode 1.15.3`).
+Expected output: `opencode <version>` (check the [latest release](https://github.com/anomalyco/opencode/releases/latest) for the current version).
 
 ---
 
@@ -158,7 +158,7 @@ To update the flake to the latest OpenCode release from your local machine:
 ./update-version.sh
 
 # Update to a specific version
-./update-version.sh 1.15.3
+./update-version.sh <version>
 ```
 
 The script will:
