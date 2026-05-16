@@ -1,7 +1,7 @@
 # OpenCode Nix Flake
 
-[![OpenCode Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fyour-github-username%2Fopencode-flake%2Fmain%2Fversion.json&query=%24.version&label=opencode&color=blue&logo=opencode)](https://opencode.ai)
-[![Update Status](https://img.shields.io/github/actions/workflow/status/your-github-username/opencode-flake/update.yml?label=auto-update)](https://github.com/your-github-username/opencode-flake/actions/workflows/update.yml)
+[![OpenCode Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FHy4ri%2Fopencode-flake%2Fmain%2Fversion.json&query=%24.version&label=opencode&color=blue&logo=opencode)](https://opencode.ai)
+[![Update Status](https://img.shields.io/github/actions/workflow/status/Hy4ri/opencode-flake/update.yml?label=auto-update)](https://github.com/Hy4ri/opencode-flake/actions/workflows/update.yml)
 
 Nix flake for [OpenCode](https://opencode.ai) — an AI-powered terminal code editor and desktop IDE.  
 Provides reproducible, declarative packaging of OpenCode for NixOS, Home Manager, and `nix run`.
@@ -35,13 +35,13 @@ Try OpenCode immediately without installing permanently:
 
 ```bash
 # Run the CLI editor
-nix run github:your-github-username/opencode-flake
+nix run github:Hy4ri/opencode-flake
 
 # Run the desktop IDE
-nix run github:your-github-username/opencode-flake#opencode-desktop
+nix run github:Hy4ri/opencode-flake#opencode-desktop
 ```
 
-> **Note:** Replace `your-github-username` with the GitHub username or organization that hosts this flake. If you've forked this repository, use your own username.
+> **Note:** Replace `Hy4ri` with the GitHub username or organization that hosts this flake. If you've forked this repository, use your own username.
 
 ---
 
@@ -53,7 +53,7 @@ In your NixOS configuration or Home Manager flake:
 
 ```nix
 {
-  inputs.opencode.url = "github:your-github-username/opencode-flake";
+  inputs.opencode.url = "github:Hy4ri/opencode-flake";
 }
 ```
 
@@ -97,7 +97,7 @@ If you prefer not to use overlays, reference the packages directly:
 
 ```nix
 {
-  inputs.opencode.url = "github:your-github-username/opencode-flake";
+  inputs.opencode.url = "github:Hy4ri/opencode-flake";
 
   outputs = { self, nixpkgs, opencode }: {
     nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
@@ -129,7 +129,7 @@ opencode --version
 opencode-desktop --version
 
 # If using nix run
-nix run github:your-github-username/opencode-flake -- --version
+nix run github:Hy4ri/opencode-flake -- --version
 ```
 
 Expected output: `opencode <version>` (e.g., `opencode 1.15.3`).
@@ -233,10 +233,10 @@ Ensure you're using the correct attribute path:
 
 ```bash
 # Default (CLI)
-nix run github:your-github-username/opencode-flake
+nix run github:Hy4ri/opencode-flake
 
 # Desktop
-nix run github:your-github-username/opencode-flake#opencode-desktop
+nix run github:Hy4ri/opencode-flake#opencode-desktop
 ```
 
 If the flake is local:
