@@ -12,6 +12,8 @@
     supportedSystems = [
       "x86_64-linux"
       "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
     ];
 
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -24,10 +26,13 @@
   in {
     packages = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
+      isLinux = pkgs.stdenv.hostPlatform.isLinux;
     in {
       opencode = pkgs.callPackage ./opencode.nix {};
-      opencode-desktop = pkgs.callPackage ./opencode-desktop.nix {};
       default = self.packages.${system}.opencode;
+    }
+    // pkgs.lib.optionalAttrs isLinux {
+      opencode-desktop = pkgs.callPackage ./opencode-desktop.nix {};
     });
 
     overlays = {
@@ -41,23 +46,11 @@
 
       default = final: prev:
         self.overlays.opencode final prev
-        // self.overlays.opencode-desktop final prev;
+        // (
+          if prev.stdenv.hostPlatform.isLinux
+          then self.overlays.opencode-desktop final prev
+          else {}
+        );
     };
-
-    devShells = forAllSystems (system: let
-      pkgs = nixpkgsFor.${system};
-    in {
-      default = pkgs.mkShell {
-        packages = with pkgs; [
-          curl
-          jq
-          nix
-        ];
-        shellHook = ''
-          echo "opencode-flake dev shell"
-          echo "  Run ./update-version.sh to update to the latest release"
-        '';
-      };
-    });
   };
 }

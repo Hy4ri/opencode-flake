@@ -14,17 +14,17 @@ Provides reproducible, declarative packaging of OpenCode for NixOS, Home Manager
 
 This flake packages both editions:
 
-| Package | Description | Type |
-|---------|-------------|------|
-| `opencode` | Terminal-based CLI editor | Binary (tar.gz) |
-| `opencode-desktop` | Desktop IDE (Electron) | Binary (.deb) |
+| Package | Description | Platforms |
+|---------|-------------|----------|
+| `opencode` | Terminal-based CLI editor | Linux, macOS |
+| `opencode-desktop` | Desktop IDE (Electron) | Linux only |
 
 ---
 
 ## Prerequisites
 
-- **Nix** with [ flakes](https://nixos.wiki/wiki/Flakes) enabled
-- Linux on **x86_64** or **aarch64** (ARM)
+- **Nix** with [flakes](https://nixos.wiki/wiki/Flakes) enabled
+- **Linux** (x86_64, aarch64) or **macOS** (x86_64, Apple Silicon)
 - *(Optional)* [NixOS](https://nixos.org/) or [Home Manager](https://github.com/nix-community/home-manager) for declarative installation
 
 ---
@@ -208,7 +208,7 @@ git commit -m "chore: update opencode to <version>"
 
 ### "Unsupported system" error
 
-This flake only supports **x86_64-linux** and **aarch64-linux**. If you're on a different architecture or macOS, OpenCode does not currently provide prebuilt binaries for those platforms.
+The CLI (`opencode`) supports **x86_64-linux**, **aarch64-linux**, **x86_64-darwin**, and **aarch64-darwin**. The desktop app (`opencode-desktop`) is **Linux-only**. If you're on an unsupported architecture, OpenCode does not currently provide prebuilt binaries for that platform.
 
 ### Hash mismatch during build
 

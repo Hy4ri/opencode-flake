@@ -3,28 +3,45 @@
   stdenv,
   fetchurl,
   makeWrapper,
+  unzip,
   glibc,
 }:
 
 let
   version = (builtins.fromJSON (builtins.readFile ./version.json)).version;
-
-  archMap = {
-    x86_64-linux = "x64";
-    aarch64-linux = "arm64";
-  };
-
-  hashMap = {
-    x86_64-linux = "sha256-+K6GeMm8zbr5l3fzb/LV7+aJ1HM4Ty6UuE1s2iVtJUA="; # cli-x64
-    aarch64-linux = "sha256-Tyo+MEDG3GcXlhsQNOeuZRlAxEkGXTFsbG4XpLeCk9o="; # cli-arm64
-  };
-
   system = stdenv.hostPlatform.system;
-  arch = archMap.${system} or (throw "Unsupported system: ${system}");
-  hash = hashMap.${system} or (throw "Unsupported system: ${system}");
+  isDarwin = stdenv.hostPlatform.isDarwin;
 
-  # Resolve the dynamic linker path for the current platform
-  dynamicLinker = stdenv.cc.bintools.dynamicLinker;
+  # Platform-specific archive format and naming
+  platformAttrs = {
+    x86_64-linux = {
+      arch = "x64";
+      ext = "tar.gz";
+      hash = "sha256-+K6GeMm8zbr5l3fzb/LV7+aJ1HM4Ty6UuE1s2iVtJUA="; # cli-linux-x64
+    };
+    aarch64-linux = {
+      arch = "arm64";
+      ext = "tar.gz";
+      hash = "sha256-Tyo+MEDG3GcXlhsQNOeuZRlAxEkGXTFsbG4XpLeCk9o="; # cli-linux-arm64
+    };
+    x86_64-darwin = {
+      arch = "x64";
+      ext = "zip";
+      hash = "sha256-0HuZlvW9FJ1W+H5Fbq/KOJBgIYriFAA9AomjcyHVEWA="; # cli-darwin-x64
+    };
+    aarch64-darwin = {
+      arch = "arm64";
+      ext = "zip";
+      hash = "sha256-UIeFOiasq3c59nZTLq8m8UZDRaDd2WMx5JC4bevLS6I="; # cli-darwin-arm64
+    };
+  };
+
+  attrs = platformAttrs.${system} or (throw "Unsupported system: ${system}");
+  os = if isDarwin then "darwin" else "linux";
+  url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-${os}-${attrs.arch}.${attrs.ext}";
+
+  # The dynamic linker path for Linux wrapper
+  dynamicLinker = if !isDarwin then stdenv.cc.bintools.dynamicLinker else null;
 in
 
 stdenv.mkDerivation rec {
@@ -32,34 +49,39 @@ stdenv.mkDerivation rec {
   inherit version;
 
   src = fetchurl {
-    url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-linux-${arch}.tar.gz";
-    inherit hash;
+    inherit url;
+    hash = attrs.hash;
   };
 
   # NOTE: Do NOT use autoPatchelfHook or patchelf on this binary.
   #
   # The opencode CLI is a Bun single-file executable (SFE). Bun SFEs store
-  # their bundled JS bytecode appended at the tail of the ELF binary, located
-  # via offsets relative to the end of the file. Any tool that modifies ELF
-  # sections (autoPatchelfHook, patchelf --set-interpreter) will change the
-  # binary's size, corrupting the bytecode offset and causing the binary to
-  # fall back to bare Bun CLI help instead of launching OpenCode.
-  #
-  # Instead, we leave the binary untouched and invoke it through the Nix glibc
-  # dynamic linker directly via a wrapper.
-  nativeBuildInputs = [ makeWrapper ];
+  # their bundled JS bytecode appended at the tail of the ELF/Mach-O binary,
+  # located via offsets relative to the end of the file. Any tool that modifies
+  # binary sections (autoPatchelfHook, patchelf --set-interpreter) will change
+  # the binary's size, corrupting the bytecode offset and causing it to fall
+  # back to bare Bun CLI help instead of launching OpenCode.
+  nativeBuildInputs =
+    lib.optional (!isDarwin) makeWrapper
+    ++ lib.optional isDarwin unzip;
+
   dontAutoPatchelf = true;
   dontStrip = true;
   dontFixup = true;
 
   unpackPhase = ''
     runHook preUnpack
-    tar -xzf $src
+    ${if isDarwin then "unzip $src" else "tar -xzf $src"}
     runHook postUnpack
   '';
 
   installPhase = ''
     runHook preInstall
+  '' + (if isDarwin then ''
+    # On Darwin, the binary runs natively — no interpreter patching needed
+    mkdir -p $out/bin
+    install -Dm755 opencode $out/bin/opencode
+  '' else ''
     mkdir -p $out/lib/opencode $out/bin
 
     # Install the binary untouched — do NOT modify it
@@ -69,6 +91,7 @@ stdenv.mkDerivation rec {
     # bypassing the need to patch the ELF interpreter in-place.
     makeWrapper ${dynamicLinker} $out/bin/opencode \
       --add-flags "$out/lib/opencode/opencode"
+  '') + ''
     runHook postInstall
   '';
 
@@ -78,6 +101,11 @@ stdenv.mkDerivation rec {
     license = lib.licenses.mit;
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     mainProgram = "opencode";
-    platforms = [ "x86_64-linux" "aarch64-linux" ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
   };
 }
