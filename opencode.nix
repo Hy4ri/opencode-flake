@@ -2,9 +2,7 @@
   lib,
   stdenv,
   fetchurl,
-  autoPatchelfHook,
-  openssl,
-  zlib,
+  makeWrapper,
   glibc,
 }:
 
@@ -24,9 +22,12 @@ let
   system = stdenv.hostPlatform.system;
   arch = archMap.${system} or (throw "Unsupported system: ${system}");
   hash = hashMap.${system} or (throw "Unsupported system: ${system}");
+
+  # Resolve the dynamic linker path for the current platform
+  dynamicLinker = stdenv.cc.bintools.dynamicLinker;
 in
 
-stdenv.mkDerivation {
+stdenv.mkDerivation rec {
   pname = "opencode";
   inherit version;
 
@@ -35,8 +36,21 @@ stdenv.mkDerivation {
     inherit hash;
   };
 
-  nativeBuildInputs = [ autoPatchelfHook ];
-  buildInputs = [ openssl zlib glibc ];
+  # NOTE: Do NOT use autoPatchelfHook or patchelf on this binary.
+  #
+  # The opencode CLI is a Bun single-file executable (SFE). Bun SFEs store
+  # their bundled JS bytecode appended at the tail of the ELF binary, located
+  # via offsets relative to the end of the file. Any tool that modifies ELF
+  # sections (autoPatchelfHook, patchelf --set-interpreter) will change the
+  # binary's size, corrupting the bytecode offset and causing the binary to
+  # fall back to bare Bun CLI help instead of launching OpenCode.
+  #
+  # Instead, we leave the binary untouched and invoke it through the Nix glibc
+  # dynamic linker directly via a wrapper.
+  nativeBuildInputs = [ makeWrapper ];
+  dontAutoPatchelf = true;
+  dontStrip = true;
+  dontFixup = true;
 
   unpackPhase = ''
     runHook preUnpack
@@ -46,8 +60,15 @@ stdenv.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-    mkdir -p $out/bin
-    install -Dm755 opencode $out/bin/opencode
+    mkdir -p $out/lib/opencode $out/bin
+
+    # Install the binary untouched — do NOT modify it
+    install -Dm755 opencode $out/lib/opencode/opencode
+
+    # Create a wrapper that invokes the binary through the Nix dynamic linker,
+    # bypassing the need to patch the ELF interpreter in-place.
+    makeWrapper ${dynamicLinker} $out/bin/opencode \
+      --add-flags "$out/lib/opencode/opencode"
     runHook postInstall
   '';
 
