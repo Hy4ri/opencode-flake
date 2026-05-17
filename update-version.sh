@@ -9,13 +9,16 @@ get_hash() {
   local url="$1"
   local temp_file
   temp_file=$(mktemp)
+  trap 'rm -f "$temp_file"' RETURN
 
-  if curl -sL "$url" -o "$temp_file"; then
-    local raw_hash
-    raw_hash=$(sha256sum "$temp_file" | cut -d' ' -f1)
-    nix hash convert --hash-algo sha256 --to sri "$raw_hash"
+  if ! curl -sfL --fail "$url" -o "$temp_file"; then
+    echo ""
+    return 1
   fi
-  rm -f "$temp_file"
+
+  local raw_hash
+  raw_hash=$(sha256sum "$temp_file" | cut -d' ' -f1)
+  nix hash convert --hash-algo sha256 --to sri "$raw_hash"
 }
 
 # 1. Get version
@@ -127,12 +130,14 @@ if [[ ! -f "$opencode_file" ]]; then
   exit 1
 fi
 
+hash_pattern='sha256-[A-Za-z0-9+/]*='
+
 temp_file=$(mktemp)
-sed \
-  -e "s|\"$placeholder\"; # cli-linux-x64|\"$hash_cli_linux_x64\"; # cli-linux-x64|" \
-  -e "s|\"$placeholder\"; # cli-linux-arm64|\"$hash_cli_linux_arm64\"; # cli-linux-arm64|" \
-  -e "s|\"$placeholder\"; # cli-darwin-x64|\"$hash_cli_darwin_x64\"; # cli-darwin-x64|" \
-  -e "s|\"$placeholder\"; # cli-darwin-arm64|\"$hash_cli_darwin_arm64\"; # cli-darwin-arm64|" \
+sed -E \
+  -e "s|\"$hash_pattern\"; # cli-linux-x64|\"$hash_cli_linux_x64\"; # cli-linux-x64|" \
+  -e "s|\"$hash_pattern\"; # cli-linux-arm64|\"$hash_cli_linux_arm64\"; # cli-linux-arm64|" \
+  -e "s|\"$hash_pattern\"; # cli-darwin-x64|\"$hash_cli_darwin_x64\"; # cli-darwin-x64|" \
+  -e "s|\"$hash_pattern\"; # cli-darwin-arm64|\"$hash_cli_darwin_arm64\"; # cli-darwin-arm64|" \
   "$opencode_file" > "$temp_file"
 mv "$temp_file" "$opencode_file"
 
@@ -145,9 +150,9 @@ if [[ ! -f "$desktop_file" ]]; then
 fi
 
 temp_file=$(mktemp)
-sed \
-  -e "s|\"$placeholder\"; # desktop-amd64|\"$hash_desktop_amd64\"; # desktop-amd64|" \
-  -e "s|\"$placeholder\"; # desktop-arm64|\"$hash_desktop_arm64\"; # desktop-arm64|" \
+sed -E \
+  -e "s|\"$hash_pattern\"; # desktop-amd64|\"$hash_desktop_amd64\"; # desktop-amd64|" \
+  -e "s|\"$hash_pattern\"; # desktop-arm64|\"$hash_desktop_arm64\"; # desktop-arm64|" \
   "$desktop_file" > "$temp_file"
 mv "$temp_file" "$desktop_file"
 

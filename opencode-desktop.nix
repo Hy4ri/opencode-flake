@@ -150,11 +150,12 @@ stdenv.mkDerivation {
       cp -r usr/share/* $out/share/
     fi
 
-    # Fix desktop file paths
+    # Fix desktop file paths (Exec and Icon)
     if [ -d "$out/share/applications" ]; then
       for desktop in $out/share/applications/*.desktop; do
         [ -f "$desktop" ] && substituteInPlace "$desktop" \
-          --replace-fail /opt/OpenCode/@opencode-aidesktop $out/bin/opencode-desktop
+          --replace-fail /opt/OpenCode/@opencode-aidesktop $out/bin/opencode-desktop \
+          --replace-warn /opt/OpenCode/ $out/opt/opencode-desktop/
       done
     fi
 
@@ -162,7 +163,7 @@ stdenv.mkDerivation {
     mkdir -p $out/bin
     makeWrapper $out/opt/opencode-desktop/@opencode-aidesktop $out/bin/opencode-desktop \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs} \
-      --set PATH ${lib.makeBinPath [ xdg-utils ]}
+      --prefix PATH : ${lib.makeBinPath [ xdg-utils ]}
 
     runHook postInstall
   '';

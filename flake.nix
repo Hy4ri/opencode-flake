@@ -35,6 +35,14 @@
       opencode-desktop = pkgs.callPackage ./opencode-desktop.nix {};
     });
 
+    devShells = forAllSystems (system: let
+      pkgs = nixpkgsFor.${system};
+    in {
+      default = pkgs.mkShell {
+        packages = with pkgs; [ curl coreutils nix ];
+      };
+    });
+
     overlays = {
       opencode = final: prev: {
         opencode = final.callPackage ./opencode.nix {};

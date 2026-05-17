@@ -115,6 +115,52 @@ If you prefer not to use overlays, reference the packages directly:
 
 ---
 
+## Development
+
+### Dev Shell
+
+Enter a development environment with all tools needed for maintenance:
+
+```bash
+nix develop github:Hy4ri/opencode-flake
+```
+
+### Updating the Version
+
+The version is updated automatically via GitHub Actions daily. To update manually:
+
+```bash
+# Update to latest release
+./update-version.sh
+
+# Update to a specific version
+./update-version.sh 1.16.0
+```
+
+The script will download all platform archives, compute SRI hashes, and update `version.json`, `opencode.nix`, and `opencode-desktop.nix`.
+
+### CI Auto-Update
+
+The [update workflow](.github/workflows/update.yml) runs daily at 17:00 UTC and:
+
+1. Checks for a new upstream release
+2. Runs `update-version.sh` to fetch and hash all binaries
+3. Updates `flake.lock` to the latest nixpkgs
+4. Verifies the flake evaluates and the CLI builds
+5. Commits and pushes only if verification passes
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Enter the dev shell: `nix develop`
+3. Make your changes
+4. Verify with `nix flake check` and `nix build .#opencode`
+5. Submit a pull request
+
+---
+
 ## License
 
 This flake packaging is provided under the **MIT** license.

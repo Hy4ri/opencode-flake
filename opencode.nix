@@ -4,7 +4,6 @@
   fetchurl,
   makeWrapper,
   unzip,
-  glibc,
 }:
 
 let
@@ -41,10 +40,10 @@ let
   url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-${os}-${attrs.arch}.${attrs.ext}";
 
   # The dynamic linker path for Linux wrapper
-  dynamicLinker = if !isDarwin then stdenv.cc.bintools.dynamicLinker else null;
+  dynamicLinker = lib.optionalString stdenv.hostPlatform.isLinux stdenv.cc.bintools.dynamicLinker;
 in
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "opencode";
   inherit version;
 
