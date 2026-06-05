@@ -57,8 +57,8 @@ let
   };
 
   hashMap = {
-    x86_64-linux = "sha256-y4JaMNKA9nSM1k21eDsq1/007wG73my1PmwmMPvZiWM="; # desktop-amd64
-    aarch64-linux = "sha256-rptjSn3mAnTFbj7+By0NhPO+2aedvve5pqUPgnL+9No="; # desktop-arm64
+    x86_64-linux = "sha256-8bgyEz+xKpvkNBbrNVhpY9aAc4l3qKldHaCAKjbk1d4="; # desktop-amd64
+    aarch64-linux = "sha256-jh5p7Pz+M/kVaDxVf4ddBFuF1OTPlz8X9ukJcjKla3Y="; # desktop-arm64
   };
 
   system = stdenv.hostPlatform.system;
