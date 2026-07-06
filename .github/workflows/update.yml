@@ -19,6 +19,8 @@ jobs:
 
       - name: Check for updates
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           LATEST_VERSION=$(gh api repos/anomalyco/opencode/releases/latest --jq '.tag_name[1:]')
 
@@ -27,7 +29,6 @@ jobs:
             exit 1
           fi
 
-          LATEST_VERSION="${LATEST_VERSION#v}"
           CURRENT_VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
 
           echo "Latest: $LATEST_VERSION"
