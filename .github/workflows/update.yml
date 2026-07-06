@@ -19,12 +19,8 @@ jobs:
 
       - name: Check for updates
         id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          LATEST_VERSION=$(curl -s -H "Authorization: Bearer ***" \
-            "https://api.github.com/repos/anomalyco/opencode/releases/latest" | \
-            grep -oP '"tag_name":\s*"v\K[^"]+' || true)
+          LATEST_VERSION=$(gh api repos/anomalyco/opencode/releases/latest --jq '.tag_name[1:]')
 
           if [ -z "$LATEST_VERSION" ]; then
             echo "Could not find latest version."
