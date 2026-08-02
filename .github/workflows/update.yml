@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
+    outputs:
+      fail_reason: ${{ steps.check.outputs.fail_reason }}
     steps:
       - uses: actions/checkout@v6
 
@@ -19,15 +22,30 @@ jobs:
 
       - name: Check for updates
         id: check
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          LATEST_VERSION=$(gh api repos/anomalyco/opencode/releases/latest --jq '.tag_name[1:]')
+          ERR_LOG="$(mktemp)"
+          die() {
+            echo "fail_reason=$1" | tr -d '\n\r' >> "$GITHUB_OUTPUT"
+            echo "$1" >&2
+            exit 1
+          }
+
+          LATEST_VERSION=""
+          for i in 1 2 3; do
+            if LATEST_VERSION=$(gh api repos/anomalyco/opencode/releases/latest --jq '.tag_name[1:]' 2>>"$ERR_LOG"); then
+              break
+            fi
+            [ "$i" -lt 3 ] && sleep 5 || true
+          done
 
           if [ -z "$LATEST_VERSION" ]; then
-            echo "Could not find latest version."
-            exit 1
+            die "Could not fetch latest opencode version from GitHub API after 3 attempts. Last error: $(tail -n 1 "$ERR_LOG" 2>/dev/null || echo 'unknown')"
           fi
+
+          echo "fail_reason=" >> "$GITHUB_OUTPUT"
 
           CURRENT_VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
 
@@ -67,3 +85,49 @@ jobs:
           git add version.json opencode.nix opencode-desktop.nix flake.lock
           git commit -m "chore: update opencode to ${{ steps.check.outputs.version }}"
           git push
+
+      - name: Close resolved failure issues
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LABEL="auto-failure"
+          gh label create "$LABEL" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          OPEN=$(gh issue list --repo "$GITHUB_REPOSITORY" --label "$LABEL" --state open --json number --jq '.[].number')
+          for n in $OPEN; do
+            echo "Closing auto-failure issue #$n (workflow succeeded again)"
+            gh issue close "$n" --repo "$GITHUB_REPOSITORY" --comment "The Update OpenCode workflow succeeded again — closing automatically."
+          done
+
+      # continue-on-error above would let the job pass; fail the run when the check failed.
+      - name: Fail the run
+        if: steps.check.outcome == 'failure'
+        run: exit 1
+
+  report-failure:
+    runs-on: ubuntu-latest
+    needs: update-opencode
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Open failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LABEL="auto-failure"
+          gh label create "$LABEL" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+
+          REASON="${{ needs.update-opencode.outputs.fail_reason }}"
+          [ -n "$REASON" ] || REASON="See the failed run logs for details."
+
+          TITLE="[auto] Update OpenCode workflow failed"
+          BODY=$(printf 'The **Update OpenCode** workflow failed on %s.\n\n- Run: %s/%s/actions/runs/%s\n- Job: update-opencode\n\n**Failure reason:** %s\n\n_This issue was created automatically. It will be closed automatically when the workflow succeeds again._\n' "$(date -u +'%Y-%m-%d %H:%M UTC')" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$REASON")
+
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "Failure issue #$EXISTING already open — adding comment instead."
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "Still failing on run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID — $REASON"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --label "$LABEL" --body "$BODY"
+          fi
