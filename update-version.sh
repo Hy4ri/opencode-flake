@@ -27,8 +27,8 @@ if [ -n "${1:-}" ]; then
   echo "Version provided from argument: $version"
 else
   echo "Fetching latest version from GitHub..."
-  version=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | \
-    grep -oP '"tag_name":\s*"v\K[^"]+')
+  version=$(curl -fsSL --connect-timeout 10 --max-time 30 --retry 3 --retry-delay 3 --retry-all-errors "https://api.github.com/repos/$REPO/releases/latest" | \
+    grep -oP '"tag_name":\s*"v\K[^"]+' || true)
   
   if [[ -z "$version" ]]; then
     echo "Error: Failed to fetch latest version from GitHub."
