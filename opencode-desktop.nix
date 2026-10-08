@@ -140,7 +140,7 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    # The .deb extracts to opt/OpenCode/ with binary named @opencode-aidesktop
+    # The .deb extracts to opt/OpenCode/ with binary named ai.opencode.desktop
     mkdir -p $out/opt/opencode-desktop
     cp -r opt/OpenCode/* $out/opt/opencode-desktop/
 
@@ -154,14 +154,14 @@ stdenv.mkDerivation {
     if [ -d "$out/share/applications" ]; then
       for desktop in $out/share/applications/*.desktop; do
         [ -f "$desktop" ] && substituteInPlace "$desktop" \
-          --replace-fail /opt/OpenCode/@opencode-aidesktop $out/bin/opencode-desktop \
+          --replace-fail /opt/OpenCode/ai.opencode.desktop $out/bin/opencode-desktop \
           --replace-warn /opt/OpenCode/ $out/opt/opencode-desktop/
       done
     fi
 
     # Wrap the binary
     mkdir -p $out/bin
-    makeWrapper $out/opt/opencode-desktop/@opencode-aidesktop $out/bin/opencode-desktop \
+    makeWrapper $out/opt/opencode-desktop/ai.opencode.desktop $out/bin/opencode-desktop \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs} \
       --prefix PATH : ${lib.makeBinPath [ xdg-utils ]}
 
