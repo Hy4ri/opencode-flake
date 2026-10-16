@@ -16,22 +16,22 @@ let
     x86_64-linux = {
       arch = "x64";
       ext = "tar.gz";
-      hash = "sha256-bxkEuGC9vTLpDmecnhsOZOeCaaNT4Ul9XqeS36RJU4w="; # cli-linux-x64
+      hash = "sha256-E6j7KXgwIHG4b51+ANqciJX5zYRpeDecO9xqUzNTbJs="; # cli-linux-x64
     };
     aarch64-linux = {
       arch = "arm64";
       ext = "tar.gz";
-      hash = "sha256-OEDpr7JGKmZtMYFrILwTuRr5hFwynP9mCpcqqc+u46I="; # cli-linux-arm64
+      hash = "sha256-eQCBimqYiB7butq0t1JZQO/zuXUAQMIASB+fVsrO5AU="; # cli-linux-arm64
     };
     x86_64-darwin = {
       arch = "x64";
       ext = "zip";
-      hash = "sha256-LERvXUgst499jqPydrP+2jimQ0bVdOVqdEER3uUoE+M="; # cli-darwin-x64
+      hash = "sha256-Tinb4vYaznKDcFI8iAJ9B0Kzp57c3Sxw5AT2FtTvjzY="; # cli-darwin-x64
     };
     aarch64-darwin = {
       arch = "arm64";
       ext = "zip";
-      hash = "sha256-ycS3gzossKC2dgMdi2iAErUCW8VaiQ4qzUQSywTRmwI="; # cli-darwin-arm64
+      hash = "sha256-wtD+zSes9uCL4CwfXThGFNB0lVh3ZrzEpr/zlxdJu2Q="; # cli-darwin-arm64
     };
   };
 
